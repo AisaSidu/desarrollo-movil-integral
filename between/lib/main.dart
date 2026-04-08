@@ -1,3 +1,5 @@
+import 'package:between/firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,6 +20,9 @@ void main() async {
   // Asegurarnos de que Flutter esté listo antes de correr servicios nativos
   WidgetsFlutterBinding.ensureInitialized();
   
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   // Inicializamos nuestro servicio de notificaciones
   await NotificationService().init();
   

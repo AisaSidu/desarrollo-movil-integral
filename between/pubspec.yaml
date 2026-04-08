@@ -44,6 +44,8 @@ dependencies:
   timezone: ^0.11.0
   shared_preferences: ^2.5.5
   local_auth: ^3.0.1
+  firebase_core: ^4.6.0
+  cloud_firestore: ^6.2.0
   
 
 dev_dependencies:

@@ -1,10 +1,14 @@
+import 'package:between/view_models/auth_view_model.dart';
+import 'package:between/views/login_screen.dart' show LoginScreen;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../view_models/notes_view_model.dart';
 import '../view_models/mood_view_model.dart';
 import '../view_models/therapy_view_model.dart';
 import 'therapy_config_screen.dart';
-import 'mood_screen.dart'; // Para colores y bottom nav
+import 'mood_screen.dart';
+import '../services/cloud_sync_service.dart';
+
 
 class SessionSummaryScreen extends StatelessWidget {
   @override
@@ -218,6 +222,31 @@ class SessionSummaryScreen extends StatelessWidget {
                                 },
                               ),
                         const SizedBox(height: 30),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+                          label: const Text(
+                            "Cerrar Sesión", 
+                            style: TextStyle(color: Colors.redAccent, fontSize: 16, fontWeight: FontWeight.bold)
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: const BorderSide(color: Colors.redAccent, width: 1.5),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                          ),
+                          onPressed: () async {
+                            // 1. Llamamos al ViewModel para borrar el caché (SharedPreferences)
+                            await Provider.of<AuthViewModel>(context, listen: false).logout();
+
+                            // 2. Navegamos al Login DESTRUYENDO el historial de pantallas
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(builder: (context) => LoginScreen()),
+                              (Route<dynamic> route) => false, // El "false" mata todas las pantallas anteriores
+                            );
+                          },
+                        ),
+                        
+                        const SizedBox(height: 40),
                       ],
                     ),
                   ),
@@ -226,6 +255,27 @@ class SessionSummaryScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: BetweenColors.deepPurple,
+        icon: const Icon(Icons.cloud_upload_rounded, color: BetweenColors.white),
+        label: const Text("Respaldar en la Nube", style: TextStyle(color: BetweenColors.white, fontWeight: FontWeight.bold)),
+        onPressed: () async {
+          // Mostramos un indicador de carga (opcional pero se ve pro)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Sincronizando con Firebase... ☁️"), duration: Duration(seconds: 1)),
+          );
+
+          // Llamamos al puente
+          bool success = await CloudSyncService().syncLocalDataToCloud();
+
+          // Avisamos el resultado
+          if(success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("¡Datos asegurados en la nube! 🔒"), backgroundColor: Colors.green),
+            );
+          }
+        },
       ),
       bottomNavigationBar: BetweenBottomNav(context: context, activeTab: "Sesión"),
     );
