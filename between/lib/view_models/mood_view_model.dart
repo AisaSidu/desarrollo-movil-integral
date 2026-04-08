@@ -48,12 +48,10 @@ class MoodViewModel extends ChangeNotifier {
   // --- ALGORITMO DEL SPRINT 3: Procesamiento de datos para gráficas ---
   
   Map<String, double> getAverageMoodsPerDay() {
-    // Paso 1: Crear un diccionario para agrupar los valores por fecha
-    // Se verá algo así: {'2026-04-06': [5, 3], '2026-04-07': [4]}
     Map<String, List<int>> groupedMoods = {};
 
     for (var mood in _moods) {
-      // Extraemos solo la parte "AÑO-MES-DIA" para ignorar las horas y minutos
+      // Extraer solo la parte de la fecha (YYYY-MM-DD) para agrupar por día
       String dateKey = mood.date.toIso8601String().substring(0, 10);
       
       if (!groupedMoods.containsKey(dateKey)) {
@@ -62,8 +60,8 @@ class MoodViewModel extends ChangeNotifier {
       groupedMoods[dateKey]!.add(mood.moodValue);
     }
 
-    // Paso 2: Calcular el promedio por cada día
-    // Se verá algo así: {'2026-04-06': 4.0, '2026-04-07': 4.0}
+    // Calcular el promedio por cada día
+    
     Map<String, double> dailyAverages = {};
     
     groupedMoods.forEach((dateKey, values) {
@@ -73,8 +71,7 @@ class MoodViewModel extends ChangeNotifier {
       dailyAverages[dateKey] = sum / values.length;
     });
 
-    // Paso 3: Ordenar cronológicamente (muy importante para la gráfica)
-    // Para que la línea se dibuje de izquierda (pasado) a derecha (presente)
+    // Ordenar cronológicamente los datos para que la gráfica los muestre en el orden correcto
     var sortedKeys = dailyAverages.keys.toList()..sort();
     Map<String, double> sortedAverages = {};
     

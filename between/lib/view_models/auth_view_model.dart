@@ -1,34 +1,85 @@
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqflite.dart'; // Importa sqflite para las excepciones
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart'; 
+// ¡Importaciones vitales para la biometría que faltaban!
+import 'package:local_auth/local_auth.dart';
+import 'package:local_auth_android/local_auth_android.dart';
+
 import '../data/database_helper.dart';
 import '../data/models/user_model.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final DatabaseHelper _dbHelper = DatabaseHelper();
-  bool _isLoggedIn = false;
   
-  bool get isLoggedIn => _isLoggedIn;
+  // Instancia de biometría que faltaba
+  final LocalAuthentication _auth = LocalAuthentication(); 
+  
+  // Unificamos el nombre a _isAuthenticated en todo el archivo
+  bool _isAuthenticated = false;
+  bool get isAuthenticated => _isAuthenticated;
 
-  // --- REGISTRO (SIGNUP) ---
+  // --- 1. GUARDAR SESIÓN EN CACHÉ ---
+  Future<void> saveLoginSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', true);
+    _isAuthenticated = true;
+    notifyListeners();
+  }
+
+  // --- 2. VERIFICAR SESIÓN Y PEDIR HUELLA/PIN AL ABRIR LA APP ---
+  // --- 2. VERIFICAR SESIÓN Y PEDIR HUELLA/PIN AL ABRIR LA APP ---
+  // --- 2. VERIFICAR SESIÓN Y PEDIR HUELLA/PIN AL ABRIR LA APP ---
+  Future<bool> checkAndAuthenticate() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool hasPreviousSession = prefs.getBool('isLoggedIn') ?? false;
+
+    if (!hasPreviousSession) {
+      return false; // Nunca ha iniciado sesión
+    }
+
+    try {
+      final bool didAuthenticate = await _auth.authenticate(
+        localizedReason: 'Desbloquea Between para acceder a tu diario',
+        // Dejamos únicamente los parámetros que tu versión de local_auth reconoce
+        biometricOnly: false, // ¡Vital! Permite usar el PIN si la huella falla o no existe
+        authMessages: const [
+          AndroidAuthMessages(
+            signInTitle: 'Autenticación requerida',
+            cancelButton: 'Cancelar',
+          ),
+        ],
+      );
+
+      if (didAuthenticate) {
+        _isAuthenticated = true;
+        notifyListeners();
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      print("Error biométrico: $e");
+      return false; 
+    }
+  }
+  
+
+  // --- 3. REGISTRO (SIGNUP) ---
   Future<bool> signup(String email, String password) async {
     final db = await _dbHelper.database;
-    
-    // Aquí podrías agregar cifrado real con el paquete 'encrypt'
-    // Por ahora, para la evidencia rápida, guardamos directo (o un hash simple)
     final newUser = User(email: email, password: password);
 
     try {
       await db.insert('users', newUser.toMap());
-      _isLoggedIn = true;
-      notifyListeners();
+      // ¡Guardamos la sesión automáticamente tras registrarse!
+      await saveLoginSession();
       return true;
     } catch (e) {
-      // Si el email ya existe (error de restricción UNIQUE)
       return false;
     }
   }
 
-  // --- INICIO DE SESIÓN (LOGIN) ---
+  // --- 4. INICIO DE SESIÓN (LOGIN) ---
   Future<bool> login(String email, String password) async {
     final db = await _dbHelper.database;
     
@@ -39,16 +90,19 @@ class AuthViewModel extends ChangeNotifier {
     );
 
     if (maps.isNotEmpty) {
-      _isLoggedIn = true;
-      notifyListeners();
+      // ¡Guardamos la sesión automáticamente tras hacer login!
+      await saveLoginSession();
       return true;
     } else {
       return false;
     }
   }
 
-  void logout() {
-    _isLoggedIn = false;
+  // --- 5. CERRAR SESIÓN ---
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', false);
+    _isAuthenticated = false;
     notifyListeners();
   }
 }

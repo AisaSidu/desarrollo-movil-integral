@@ -66,5 +66,12 @@ class DatabaseHelper {
         password TEXT -- Se guardará cifrada
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE settings(
+        key TEXT PRIMARY KEY,
+        value TEXT
+      )
+    ''');
   }
 }

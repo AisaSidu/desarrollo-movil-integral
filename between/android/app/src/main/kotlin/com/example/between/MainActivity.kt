@@ -1,5 +1,6 @@
-package com.example.between
+package com.example.between // <-- Manten tu package original aquí
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+class MainActivity: FlutterFragmentActivity() {
+}
